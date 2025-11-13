@@ -1,16 +1,12 @@
-// api/index.js - Debug version
-import serverless from "serverless-http";
+// api/index.js - Minimal working ES module
+import express from 'express';
+import serverless from 'serverless-http';
 
-// Create a simple app without any dependencies
-const app = require('express')();
-
-app.use(require('cors')());
-app.use(require('express').json());
+const app = express();
 
 app.get('/', (req, res) => {
-  console.log('Root route called');
   res.json({ 
-    message: "✅ Debug: Server is working!",
+    message: "✅ API is working with ES modules!",
     timestamp: new Date().toISOString(),
     status: "success"
   });
@@ -18,11 +14,6 @@ app.get('/', (req, res) => {
 
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', server: 'running' });
-});
-
-// Test without database first
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'API test without DB' });
 });
 
 export const handler = serverless(app);

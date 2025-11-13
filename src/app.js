@@ -1,4 +1,4 @@
-// src/app.js
+// src/app.js - ES Module version
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Simple root route that always works
+// Root route
 app.get("/", (req, res) => {
   res.json({ 
     message: "🚀 Server is running successfully!",
@@ -20,7 +20,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// Simple health check
+// Health check
 app.get("/health", (req, res) => {
   res.json({ 
     status: "healthy", 
@@ -43,7 +43,7 @@ app.use((err, req, res, next) => {
   console.error("Server error:", err);
   res.status(500).json({ 
     error: "Internal server error",
-    message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message
+    message: "Something went wrong"
   });
 });
 
