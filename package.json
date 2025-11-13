@@ -8,10 +8,6 @@
     "dev": "nodemon src/server.js",
     "vercel-build": "echo 'No build step needed'"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.8.0",
