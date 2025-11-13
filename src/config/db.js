@@ -2,40 +2,58 @@
 import mongoose from "mongoose";
 
 const options = {
-  // Modern driver (>=4) doesn't need useNewUrlParser / useUnifiedTopology.
-  // You can provide other options if needed.
-  serverSelectionTimeoutMS: 5000, // fail fast (5s) if Atlas is unreachable
-  socketTimeoutMS: 45000
+  serverSelectionTimeoutMS: 3000, // Reduce to 3 seconds for faster failure
+  socketTimeoutMS: 30000,
+  maxPoolSize: 1, // Important for serverless - reduce connections
+  bufferCommands: false // Disable buffering (this replaces bufferMaxEntries)
 };
 
+// Cache the connection to reuse in serverless environment
+let cachedConnection = null;
+
 export default async function connectDB() {
+  // If we have a cached connection and it's connected, use it
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    console.log("Using cached MongoDB connection");
+    return cachedConnection;
+  }
+
   const uri = process.env.MONGO_URI;
   if (!uri) {
     throw new Error("MONGO_URI is not set in environment variables");
   }
 
-  // If already connected, just return
-  if (mongoose.connection.readyState === 1) {
-    console.log("MongoDB already connected (readyState=1).");
-    return mongoose.connection;
+  // Close any existing connection that might be in a bad state
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
   }
 
-  // Prevent mongoose from buffering commands if disconnected
-  mongoose.set("bufferCommands", false);
-
   try {
+    console.log("Attempting MongoDB connection...");
+    
+    // Set global mongoose options
+    mongoose.set("bufferCommands", false); // This replaces bufferMaxEntries
+    
     await mongoose.connect(uri, options);
     console.log("✅ MongoDB connected successfully");
-    // Optional: attach listeners
+    
+    cachedConnection = mongoose.connection;
+    
+    // Connection event handlers
     mongoose.connection.on("error", (err) => {
-      console.error("MongoDB connection error (event):", err);
+      console.error("MongoDB connection error:", err.message);
+      cachedConnection = null;
     });
+    
     mongoose.connection.on("disconnected", () => {
       console.warn("MongoDB disconnected");
+      cachedConnection = null;
     });
+
     return mongoose.connection;
   } catch (err) {
-    console.error("❌ MongoDB connection failed:", err && err.message ? err.message : err);
-    throw err; // rethrow so callers know it failed
+    console.error("❌ MongoDB connection failed:", err.message);
+    cachedConnection = null;
+    throw err;
   }
 }
