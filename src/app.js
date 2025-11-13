@@ -4,7 +4,6 @@ import cors from "cors";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes.js";
 import formRoutes from "./routes/formRoutes.js";
-import connectDB from "./config/db.js";
 
 dotenv.config();
 const app = express();
@@ -12,81 +11,38 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Fast health route - NO DB dependency
+// Simple root route that always works
 app.get("/", (req, res) => {
-  return res.json({ 
+  res.json({ 
     message: "🚀 Server is running successfully!",
-    timestamp: new Date().toISOString(),
-    status: "healthy"
+    status: "healthy",
+    timestamp: new Date().toISOString()
   });
 });
 
-// Health check that doesn't depend on DB
+// Simple health check
 app.get("/health", (req, res) => {
-  return res.json({ 
-    status: "healthy",
+  res.json({ 
+    status: "healthy", 
     server: "running",
     timestamp: new Date().toISOString()
   });
 });
 
-// DB middleware with timeout
-let dbConnected = false;
-let dbConnectionPromise = null;
-
-async function ensureDb(req, res, next) {
-  if (dbConnected) return next();
-  
-  // If we're already trying to connect, wait for that promise
-  if (dbConnectionPromise) {
-    try {
-      await dbConnectionPromise;
-      return next();
-    } catch (err) {
-      // Continue without DB for read operations if possible
-      console.error("DB connection in progress failed:", err.message);
-      return res.status(503).json({ 
-        error: "Service temporarily unavailable", 
-        detail: "Database connection failed" 
-      });
-    }
-  }
-
-  // Start new connection attempt
-  try {
-    dbConnectionPromise = connectDB();
-    await dbConnectionPromise;
-    dbConnected = true;
-    dbConnectionPromise = null;
-    console.log("MongoDB connected (lazy init).");
-    return next();
-  } catch (err) {
-    dbConnectionPromise = null;
-    console.error("DB connection failed:", err.message);
-    return res.status(503).json({ 
-      error: "Service temporarily unavailable", 
-      detail: "Database connection failed" 
-    });
-  }
-}
-
-// Apply ensureDb only for API routes
-app.use("/api", ensureDb);
-
-// Mount API routes
+// Your API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/form", formRoutes);
 
-// Fallback 404
+// 404 handler
 app.use((req, res) => {
-  res.status(404).json({ error: "Not Found" });
+  res.status(404).json({ error: "Route not found" });
 });
 
-// Error handling middleware
+// Error handler
 app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
+  console.error("Server error:", err);
   res.status(500).json({ 
-    error: "Internal Server Error",
+    error: "Internal server error",
     message: process.env.NODE_ENV === 'production' ? 'Something went wrong' : err.message
   });
 });

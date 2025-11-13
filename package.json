@@ -1,10 +1,12 @@
 {
   "name": "monkmaze_backend",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "vercel-build": "echo 'No build step needed'"
   },
   "keywords": [],
   "author": "",
@@ -15,12 +17,15 @@
     "cloudinary": "^2.8.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^5.1.0",
+    "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^7.0.0",
     "mongoose": "^8.19.2",
     "multer": "^2.0.2",
     "nodemon": "^3.1.10",
     "serverless-http": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
