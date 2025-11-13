@@ -9,34 +9,40 @@ import connectDB from "./config/db.js";
 dotenv.config();
 const app = express();
 
-// Lazy DB connect: first request will try to connect, subsequent requests reuse connection.
-let dbConnected = false;
+app.use(cors());
+app.use(express.json());
 
-app.use(async (req, res, next) => {
+// Fast health route: always respond quickly and NOT dependent on DB
+app.get("/", (req, res) => {
+  return res.send("🚀 Server is running successfully!");
+});
+
+// Lazy DB middleware that only applies to /api routes (so root is not blocked)
+let dbConnected = false;
+async function ensureDb(req, res, next) {
   if (dbConnected) return next();
   try {
-    await connectDB();
+    await connectDB(); // connectDB should reject quickly on failure (see db.js below)
     dbConnected = true;
     console.log("MongoDB connected (lazy init).");
     return next();
   } catch (err) {
-    console.error("DB connection failed:", err && err.message ? err.message : err);
-    // return a quick JSON error instead of letting request hang
+    console.error("DB connection failed (ensureDb):", err && err.message ? err.message : err);
+    // return an error for API routes quickly instead of hanging
     return res.status(500).json({ error: "Database connection failed", detail: err?.message });
   }
-});
+}
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
+// Apply ensureDb only for API routes (do not block health checks)
+app.use("/api", ensureDb);
 
-// Routes
+// Mount API routes (they are now under /api and have DB available)
 app.use("/api/auth", authRoutes);
 app.use("/api/form", formRoutes);
 
-// Health route
-app.get("/", (req, res) => {
-  res.send("🚀 Server is running successfully!");
+// Fallback 404 for anything else
+app.use((req, res) => {
+  res.status(404).json({ error: "Not Found" });
 });
 
 export default app;
