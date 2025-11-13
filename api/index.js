@@ -1,20 +1,26 @@
-// api/index.js - Minimal working ES module
-import express from 'express';
-import serverless from 'serverless-http';
+// api/index.js (ESM) - use this on Vercel
+import app from "../src/app.js";
+import connectDB from "../src/config/db.js"; // adapt path if different
+import dotenv from "dotenv";
 
-const app = express();
+dotenv.config();
 
-app.get('/', (req, res) => {
-  res.json({ 
-    message: "✅ API is working with ES modules!",
-    timestamp: new Date().toISOString(),
-    status: "success"
-  });
-});
+// Connect DB once per cold start (cache the promise)
+if (!global.__mongoConnection) {
+  global.__mongoConnection = connectDB(); // should return a promise
+}
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', server: 'running' });
-});
+// Export default handler expected by Vercel for ESM
+export default async function handler(req, res) {
+  // ensure DB connected before handling request
+  try {
+    await global.__mongoConnection;
+  } catch (err) {
+    console.error("DB connection failed:", err);
+    res.status(500).json({ error: "DB connection error" });
+    return;
+  }
 
-export const handler = serverless(app);
-export default handler;
+  // forward to express app (express app is a function)
+  return app(req, res);
+}
