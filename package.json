@@ -24,5 +24,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "kill-port": "^2.0.1"
   }
 }
