@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "dev": "nodemon --signal SIGTERM --delay 1500 src/server.js",
+    "dev:clean": "npx kill-port 5000 5001 5002 && npm run dev",
+    "dev:windows": "powershell -Command \"Stop-Process -Id (Get-NetTCPConnection -LocalPort 5000).OwningProcess -Force; nodemon src/server.js\"",
+    "kill": "npx kill-port 5000 5001 5002 3000 3001",
     "vercel-build": "echo 'No build step needed'"
   },
   "dependencies": {
@@ -22,10 +25,10 @@
     "nodemon": "^3.1.10",
     "serverless-http": "^4.0.0"
   },
-  "engines": {
-    "node": ">=18"
-  },
   "devDependencies": {
     "kill-port": "^2.0.1"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
