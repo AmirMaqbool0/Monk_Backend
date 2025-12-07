@@ -1,26 +1,21 @@
-// api/index.js (ESM) - Vercel compatible
+// api/index.js (Vercel Serverless)
 import app from "../src/app.js";
 import connectDB from "../src/config/db.js";
-import dotenv from "dotenv";
 
-dotenv.config();
+let dbConnected = false;
 
-// Ensure MongoDB connects only once per cold start
-if (!global.__mongoConnection) {
-  global.__mongoConnection = connectDB(); // Must return a promise
-}
-
-// Serverless entry point for Vercel
+// Vercel serverless entry point
 export default async function handler(req, res) {
-  // Wait for DB to connect
   try {
-    await global.__mongoConnection;
+    if (!dbConnected) {
+      await connectDB();
+      dbConnected = true;
+    }
   } catch (err) {
-    console.error("❌ DB connection failed:", err);
-    return res.status(500).json({ error: "Database connection error" });
+    console.error("DB error:", err);
+    return res.status(500).json({ error: "Database connection failed" });
   }
 
-  // Properly pass the request to the Express app
-  // Using .handle avoids Express trying to load './router'
-  app.handle(req, res);
+  // Handle the request with Express
+  return app(req, res);
 }
