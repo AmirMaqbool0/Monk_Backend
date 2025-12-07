@@ -1,21 +1,25 @@
-// api/index.js (Vercel Serverless)
+// api/index.js — FINAL VERCEL SERVERLESS HANDLER
 import app from "../src/app.js";
 import connectDB from "../src/config/db.js";
+import dotenv from "dotenv";
 
-let dbConnected = false;
+dotenv.config();
 
-// Vercel serverless entry point
+let isConnected = false;
+
 export default async function handler(req, res) {
-  try {
-    if (!dbConnected) {
+  // Connect DB one time per cold start
+  if (!isConnected) {
+    try {
       await connectDB();
-      dbConnected = true;
+      isConnected = true;
+    } catch (err) {
+      console.error("❌ MongoDB connection failed:", err.message);
+      return res.status(500).json({ error: "Database connection failed" });
     }
-  } catch (err) {
-    console.error("DB error:", err);
-    return res.status(500).json({ error: "Database connection failed" });
   }
 
-  // Handle the request with Express
+  // IMPORTANT: Express apps ARE functions in serverless
+  // DO NOT use app.handle(), DO NOT use app.listen()
   return app(req, res);
 }
