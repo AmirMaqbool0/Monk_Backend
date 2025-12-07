@@ -28,7 +28,8 @@
   "devDependencies": {
     "kill-port": "^2.0.1"
   },
-  "engines": {
-    "node": ">=18"
-  }
+ "engines": {
+  "node": "18.x"
+}
+
 }
