@@ -1,26 +1,28 @@
-// api/index.js (ESM) - use this on Vercel
+// api/index.js — Express + Vercel (Serverless Function)
+import serverless from "serverless-http";
 import app from "../src/app.js";
-import connectDB from "../src/config/db.js"; // adapt path if different
+import connectDB from "../src/config/db.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Connect DB once per cold start (cache the promise)
-if (!global.__mongoConnection) {
-  global.__mongoConnection = connectDB(); // should return a promise
-}
+let isConnected = false;
 
-// Export default handler expected by Vercel for ESM
+// Vercel Serverless handler
 export default async function handler(req, res) {
-  // ensure DB connected before handling request
   try {
-    await global.__mongoConnection;
+    if (!isConnected) {
+      await connectDB();
+      isConnected = true;
+    }
   } catch (err) {
-    console.error("DB connection failed:", err);
-    res.status(500).json({ error: "DB connection error" });
-    return;
+    console.error("DB Connection Error:", err);
+    return res.status(500).json({ error: "Database connection error" });
   }
 
-  // forward to express app (express app is a function)
-  return app(req, res);
+  // Convert Express to a serverless handler
+  const expressHandler = serverless(app);
+
+  // Execute it
+  return expressHandler(req, res);
 }
