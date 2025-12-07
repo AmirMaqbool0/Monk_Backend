@@ -1,22 +1,23 @@
+import serverless from "serverless-http";
 import app from "../src/app.js";
 import connectDB from "../src/config/db.js";
+import dotenv from "dotenv";
 
-let connected = false;
+dotenv.config();
+
+let isConnected = false;
 
 export default async function handler(req, res) {
-  if (!connected) {
-    try {
+  try {
+    if (!isConnected) {
       await connectDB();
-      connected = true;
-    } catch (err) {
-      console.error("DB ERROR:", err);
-      return res.status(500).json({ error: "Database connection error" });
+      isConnected = true;
     }
+  } catch (err) {
+    console.error("DB Connection Error:", err);
+    return res.status(500).json({ error: "Database connection error" });
   }
 
-  return app(req, res);
+  const expressHandler = serverless(app);
+  return expressHandler(req, res);
 }
-
-export const config = {
-  runtime: "nodejs20.x"
-};
