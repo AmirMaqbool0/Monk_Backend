@@ -1,42 +1,26 @@
-// api/index.js
-import serverless from 'serverless-http';
-import app from '../src/app.js';
-import connectDB from '../src/config/db.js';
-import dotenv from 'dotenv';
+// api/index.js (ESM) - use this on Vercel
+import app from "../src/app.js";
+import connectDB from "../src/config/db.js"; // adapt path if different
+import dotenv from "dotenv";
 
 dotenv.config();
 
-// Connect to MongoDB
-let isConnected = false;
+// Connect DB once per cold start (cache the promise)
+if (!global.__mongoConnection) {
+  global.__mongoConnection = connectDB(); // should return a promise
+}
 
-const connectToDB = async () => {
-  if (!isConnected) {
-    try {
-      await connectDB();
-      isConnected = true;
-      console.log('MongoDB connected successfully');
-    } catch (error) {
-      console.error('MongoDB connection error:', error);
-      throw error;
-    }
-  }
-};
-
-// Create serverless handler
-const handler = serverless(app);
-
-// Export the handler with DB connection
-export default async function(req, res) {
+// Export default handler expected by Vercel for ESM
+export default async function handler(req, res) {
+  // ensure DB connected before handling request
   try {
-    // Connect to DB on cold start
-    await connectToDB();
-    // Process the request
-    return await handler(req, res);
-  } catch (error) {
-    console.error('Handler error:', error);
-    res.status(500).json({ 
-      error: 'Internal Server Error',
-      message: 'Something went wrong'
-    });
+    await global.__mongoConnection;
+  } catch (err) {
+    console.error("DB connection failed:", err);
+    res.status(500).json({ error: "DB connection error" });
+    return;
   }
-};
+
+  // forward to express app (express app is a function)
+  return app(req, res);
+}
