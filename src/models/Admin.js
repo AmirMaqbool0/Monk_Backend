@@ -19,6 +19,10 @@ const adminSchema = new mongoose.Schema(
       type: String,
       default: "admin",
     },
+    isBlocked: { type: Boolean, default: false },
+    resetPasswordToken: String,
+    resetPasswordExpire: Date,
+
   },
   { timestamps: true }
 );
