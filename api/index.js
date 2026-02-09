@@ -1,26 +1,44 @@
-// api/index.js (ESM) - use this on Vercel
+// api/index.js
+import serverless from "serverless-http";
 import app from "../src/app.js";
-import connectDB from "../src/config/db.js"; // adapt path if different
+import connectDB from "../src/config/db.js";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Connect DB once per cold start (cache the promise)
+/**
+ * Important:
+ * We cache BOTH the DB connection promise and the serverless handler
+ * so Vercel doesn't recreate them on every invocation (cold start optimization)
+ */
+
+// Cache DB connection across invocations
 if (!global.__mongoConnection) {
   global.__mongoConnection = connectDB(); // should return a promise
 }
 
-// Export default handler expected by Vercel for ESM
-export default async function handler(req, res) {
-  // ensure DB connected before handling request
-  try {
-    await global.__mongoConnection;
-  } catch (err) {
-    console.error("DB connection failed:", err);
-    res.status(500).json({ error: "DB connection error" });
-    return;
-  }
+// Create serverless express wrapper ONCE
+if (!global.__serverlessHandler) {
+  global.__serverlessHandler = serverless(app);
+}
 
-  // forward to express app (express app is a function)
-  return app(req, res);
+export default async function handler(req, res) {
+  try {
+    // Ensure database is connected before handling request
+    await global.__mongoConnection;
+
+    // Forward request to Express app
+    return await global.__serverlessHandler(req, res);
+
+  } catch (error) {
+    console.error("Server error:", error);
+
+    // Fallback error response
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: "Internal Server Error",
+        message: error.message || "Unexpected server failure",
+      });
+    }
+  }
 }
